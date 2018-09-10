@@ -105,7 +105,12 @@ Usage
 
 * dev_id: Which device to use. Starting with 0.
 
+Example
+=======
+
 ```
+# Place Symbol file and params data into `plugins64\mxnet-symbol\` or use the full path of the files.
+
 symbol = 'Some2x-symbol.json'
 param  = 'Some2x-0000.params'
 patch_w, patch_h = 400, 300
@@ -134,10 +139,128 @@ odd = core.mx.Predict(core.std.SelectEvery(clip, 2, 1), symbol=symbol, param=par
 res = core.std.Interleave([even, odd])
 ```
 
+Also see [muvsfunc](https://github.com/WolframRhodium/muvsfunc/blob/master/Collections/examples/super_resolution_mxnet.vpy)'s example.
+
 Perforamce
 ==========
 
-To be tested.
+Here is the conclusion, generally MXNet is faster than Caffe with cuDNN enabled if the bottleneck is not GPU.
+
+If you found that your GPU is not under full load while using Caffe, you can get significant perforamce boost by switching to MXNet. Or your GPU memory is small, you can also switch to MXNet for higher efficiency.
+
+In this test, a 1280x720 RGB image was used as input image and resized by `resize.Bicubic` if needed.
+
+| Model                  | Input Size | Patch Size | Output Size | Speed(fps) | VRAM Usage(MB) | Backend                           |
+|------------------------|------------|------------|-------------|------------|----------------|-----------------------------------|
+| waifu2x UpRGB          | 1280x720   | 256x256    | 2560x1440   | 7.03       | 543            | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 1280x720   | 1280x720   | 2560x1440   | 7.85       | 1815           | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 1280x720   | 640x360    | 2560x1440   | 7.03       | 788            | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 21.74      | 958            | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 24.54      | 1476           | MXNet 1.3.0 (2 Queues)            |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 41.66      | 958 *2         | MXNet 1.3.0 (2 GPUs)              |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 47.7       | 1476 *2        | MXNet 1.3.0 (4 Queues 2 GPUs)     |
+| waifu2x UpRGB          | 960x540    | 960x540    | 1920x1080   | 14.8       | 1216           | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 1920x1080  | 1920x1080  | 3840x2160   | 3.60       | 3527           | MXNet 1.3.0                       |
+| waifu2x UpRGB          | 1280x720   | 256x256    | 2560x1440   | 2.93       | 527            | Caffe w/ cuDNN                    |
+| waifu2x UpRGB          | 1280x720   | 1280x720   | 2560x1440   | 3.11       | 2726           | Caffe w/ cuDNN                    |
+| waifu2x UpRGB          | 1280x720   | 640x360    | 2560x1440   | 3.08       | 959            | Caffe w/ cuDNN                    |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 8.48       | 1622           | Caffe w/ cuDNN                    |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 19.6       | 5976           | Caffe w/ cuDNN (6 Queues)         |
+| waifu2x UpRGB          | 720x480    | 720x480    | 1440x960    | 32.8       | 5949 *2        | Caffe w/ cuDNN (12 Queues 2 GPUs) |
+| waifu2x UpRGB          | 960x540    | 960x540    | 1920x1080   | 5.31       | 1699           | Caffe w/ cuDNN                    |
+| waifu2x UpRGB          | 1920x1080  | 960x540    | 3840x2160   | 1.35       | 2254           | Caffe w/ cuDNN                    |
+| waifu2x RGB            | 1280x720   | 1280x720   | 2560x1440   | 1.01       | 1752           | OpenCL (CUDA)                     |
+| waifu2x RGB            | 1280x720   | 1280x720   | 2560x1440   | 0.93       | 1749           | OpenCL (OpenCL)                   |
+| waifu2x RGB            | 1280x720   | 1280x720   | 2560x1440   | 0.93       | N/A            | OpenCL (CPU)                      |
+| waifu2x RGB            | 1280x720   | 1280x720   | 2560x1440   | 1.82       | 1999           | Caffe w/ cuDNN                    |
+| waifu2x RGB            | 1280x720   | 1280x720   | 2560x1440   | 3.36       | 1442           | MXNet 1.3.0                       |
+| waifu2x RGB            | 2560x1440* | 2560x1440  | 2560x1440   | 3.22       | 5155           | MXNet 1.3.0                       |
+| EDSR 2x                | 1280x720   | 1280x720   | 2560x1440   | 2.59       | 2732           | MXNet 1.3.0                       |
+| EDSR 2x                | 960x540    | 960x540    | 1920x1080   | 4.59       | 1732           | MXNet 1.3.0                       |
+| RCAN 2x                | 1280x720   | 1280x720   | 2560x1440   | 0.185      | 3015           | MXNet 1.3.0                       |
+| RCAN 2x                | 960x540    | 960x540    | 1920x1080   | 0.324      | 1916           | MXNet 1.3.0                       |
+| VDSR 2x (Y only)       | 2560x1440* | 2560x1440  | 2560x1440   | 1.64       | 7697           | MXNet 1.3.0                       |
+| VDSR 2x (Y only)       | 1920x1080* | 1920x1080  | 1920x1080   | 2.96       | 5857           | MXNet 1.3.0                       |
+| LapSRN 2x (Y only)     | 1280x720   | 1280x720   | 2560x1440   | 5.67       | 3310           | MXNet 1.3.0                       |
+| LapSRN 2x (Y only)     | 960x540    | 960x540    | 1920x1080   | 10.47      | 1474           | MXNet 1.3.0                       |
+| LapSRN 4x (Y only)     | 960x540    | 960x540    | 3840x2160   | 2.15       | 4565           | MXNet 1.3.0                       |
+| DRRN_B1U9 2x  (Y only) | 2560x1440* | 2560x1440  | 2560x1440   | 0.496      | 5898           | MXNet 1.3.0                       |
+| DRRN_B1U9 2x  (Y only) | 1920x1080* | 1920x1080  | 1920x1080   | 0.89       | 3514           | MXNet 1.3.0                       |
+| DRRN_B1U25 2x (Y only) | 1920x1080* | 1920x1080  | 1920x1080   | 0.316      | 4300           | MXNet 1.3.0                       |
+| DBPN 2x                | 640x360    | 640x360    | 1280x720    | 1.21       | 4987           | MXNet 1.3.0                       |
+| DBPN 2x                | 960x540    | 480x540    | 1920x1080   | 0.523      | 8090           | MXNet 1.3.0                       |
+
+* All cuDNN version is 7.
+
+* MXNet is using CUDA 9.2. (Version: mxnet_cu92-1.3.0b20180908)
+
+* For some models have the same the shape of output as the input, like Waifu2x RGB, we first resize/upscale the input image to target size by Bicubic, then feed into the model.
+
+* During testing, Waifu2x-Caffe is only utilizing around 30% of the GPU. By increasing the queues depth, we can have a significant boost; but it will take more resources and still slower than MXNet.
+
+* [Waifu2x-Caffe](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-Waifu2x-caffe) is using CUDA 9.0.
+
+* OpenCL of Waifu2x implementation is [VapourSynth-Waifu2x-w2xc](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-Waifu2x-w2xc).
+
+* All MXNet model in this test can be accessed [here](https://github.com/WolframRhodium/Super-Resolution-Zoo).
+
+Here is the test code:
+
+```
+import mxnet
+import vapoursynth as vs
+import mvsfunc as mvf
+import havsfunc as haf
+
+core = vs.get_core(threads=20)
+
+if not hasattr(core, 'mx'):
+    core.std.LoadPlugin(r'vs_mxnet.dll', altsearchpath=True)
+
+# How many frame to run
+frames = 600
+
+symbol = r'waifu2x\upconv_7_anime_style_art_rgb\scale2.0x_model-symbol.json'
+param = r'waifu2x\upconv_7_anime_style_art_rgb\scale2.0x_model-0000.params'
+
+src = core.lsmas.LWLibavSource(r'test.png', threads=1)
+src = core.std.AssumeFPS(src, fpsnum=24000, fpsden=1001)
+
+# If the model is only support Y channel, enable the following lines
+#src = mvf.ToYUV(src, css='444', depth=32)
+#src = core.std.ShufflePlanes(src, 0, vs.GRAY)
+#src = core.resize.Bicubic(src, 720, 480)
+
+src = core.resize.Bicubic(src, 720, 480, format=vs.RGBS)
+src = core.std.Loop(src, frames)
+
+block_w = src.width
+block_h = src.height
+
+scale = 2
+
+# Waifu2x need to set pad=7, other model dose not have to set padding
+pad = 0
+
+def process(clip, gpu):
+    return core.mx.Predict(clip, symbol=symbol, param=param,
+                         patch_w  = block_w + pad*2,  patch_h  = block_h + pad*2,
+                         output_w = block_w*scale,    output_h = block_h*scale,
+                         frame_w  = clip.width*scale, frame_h  = clip.height*scale,
+                         step_w   = block_w,          step_h   = block_h,
+                         padding = pad, ctx = 2, dev_id = gpu)
+
+queue_size = 3
+gpus = 2
+
+res = []
+for i in range(queue_size):
+    part = process(core.std.SelectEvery(src, queue_size, i), i % gpus)
+    res.append(part)
+
+flt = core.std.Interleave(res)
+flt.set_output()
+```
 
 Limitation
 ==========
@@ -151,6 +274,10 @@ Limitation
 4. MXNet needs large commit size, do be careful of your system maxinum commit size. But runtime memory usage is average.
 
 5. MXNet will take some time for cudnn auto tuning for convolution layers every time. set MXNET_CUDNN_AUTOTUNE_DEFAULT=0 to disable it. More info [here](https://mxnet.incubator.apache.org/faq/env_var.html).
+
+6. Please remember that during feeding the first frame, MXNet will allocate very large VRAM block, you might get **Out of Memory** error. Please reduce the patch size to solve it.
+
+7. You might need to restart the program (e.g. vsedit) after you changing the input model file.
 
 Compilation
 ===========
