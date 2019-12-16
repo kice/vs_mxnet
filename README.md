@@ -12,17 +12,17 @@ Require MXNet 1.0+
 
 Since MXNet is very large and use many libraries to improve perforamce. We recommend install MXNet via pip.
 
-Install the latest beta build with GPU(CUDA 9.2) support
+Install the latest beta build with GPU(CUDA 10.1) support
 ```
-pip install mxnet-cu92 --pre
+pip install mxnet-cu101 --pre
 ```
 Check here for more infomation [Installing MXNet](http://mxnet.incubator.apache.org/install/index.html?platform=Windows&language=Python&processor=GPU&version=master)
 
-You can check your MXNet installation with.
+You can check your MXNet installation with:
 
 ```
 > python -c "import mxnet; print(mxnet.__version__)"
-1.3.0
+1.6.0
 ```
 
 You can also check the GPU support of mxnet.
@@ -89,15 +89,11 @@ Usage
 
 * outstep_h: The same as `outstep_w` but for vertical.
 
-* padding: Add padding to the input clip before feeding the model. It will add a border to all size of the input image. default: 0
+* ~~padding: Add padding to the input clip before feeding the model. It will add a border to all size of the input image. default: 0~~ *USE MXNET Pad Layer on GPU is much faster*
 
-* border_type: Same value as [OpenCV BorderTypes](https://docs.opencv.org/3.4.0/d2/de8/group__core__array.html#ga209f2f4869e304c82d07739337eae7c5). It will be ignored if `padding` is 0. default: `cv::BORDER_REPLICATE`
-    * 0: BORDER_CONSTANT              `iiiiii|abcdefgh|iiiiiii`  Only support `i` = 0.
-    * 1: BORDER_REPLICATE (default)   `aaaaaa|abcdefgh|hhhhhhh`
-    * 2: BORDER_REFLECT               `fedcba|abcdefgh|hgfedcb`
-    * 3: BORDER_WRAP                  `cdefgh|abcdefgh|abcdefg`
-    * 4: BORDER_REFLECT_101           `gfedcb|abcdefgh|gfedcba`
-    * 5: BORDER_TRANSPARENT           `uvwxyz|abcdefgh|ijklmno`
+* output_format: Specify output frame sample format. e.g. `vs.RGBS`. defalut: same as input.
+
+* input_name: Set input name. Most MXNet model use `data` as input name. defalut: `data`.
 
 * ctx: Specifies which type of device to use. If GPU was chosen, cuDNN will be used by defalut.
     * 1 = CPU
@@ -114,7 +110,6 @@ Example
 symbol = 'Some2x-symbol.json'
 param  = 'Some2x-0000.params'
 patch_w, patch_h = 400, 300
-pad = 7
 
 # Set input size
 clip = core.resize.Bicubic(src, 960, 540)
@@ -122,14 +117,14 @@ clip = core.resize.Bicubic(src, 960, 540)
 # run some 2x upsampling model with patch size 400x300. Output size will be 1920x1080
 sr2x = core.mx.Predict(src, symbol='Some2x-symbol.json', param='Some2x-0000.params', patch_w=patch_w, patch_h=patch_h, scale=2, ctx=2, dev_id=1)
 
-# run Waifu2x 2x upconv model with patch size=400x300 on second GPU, output size is 1920x1080
+# run Waifu2x 2x upconv model with pre-padding, patch size=400x300 on second GPU, output size is 1920x1080
 waifu2x = core.mx.Predict(clip, symbol=r'noise0_scale2.0x_model-symbol.json', 
                      param=r'noise0_scale2.0x_model-0000.params', 
-                     patch_w=patch_w+pad*2, patch_h=patch_h+pad*2, 
+                     patch_w=patch_w, patch_h=patch_h, 
                      output_w=patch_w*2,    output_h=patch_h*2, 
                      frame_w=1920,          frame_h=1080, 
                      step_w=patch_w,        step_h=patch_h, 
-                     padding=pad, ctx=2, dev_id=1, scale=2)
+                     ctx=2, dev_id=1, scale=2)
 
 # For multi-GPU processing (scales almost linearly). Only support data parallel now.
 
@@ -141,7 +136,7 @@ res = core.std.Interleave([even, odd])
 
 Also see [muvsfunc](https://github.com/WolframRhodium/muvsfunc/blob/master/Collections/examples/super_resolution_mxnet.vpy)'s example.
 
-Perforamce
+**OUTDATED** Perforamce 
 ==========
 
 Here is the conclusion, generally MXNet is faster than Caffe with cuDNN enabled if the bottleneck is not GPU.
@@ -282,6 +277,6 @@ Limitation
 Compilation
 ===========
 
-Only requirement is OpenCV for padding. And there are some code to bypass Vapoursynth plugin loading system, which only works on Windows.
+There are some code to bypass Vapoursynth plugin loading system, which only works on Windows. You can remove that part and replace all MXNet function calls with normal calls will work on other system. All the header you need is here [`MXNet C predict API`](https://github.com/apache/incubator-mxnet/tree/master/include/mxnet)
 
-In addition, you can get [`MXNet C predict API`](https://github.com/apache/incubator-mxnet/tree/master/include/mxnet) if you needed. Since the plugins use `LoadLibrary` to load MXNet, you dont have to download this API to compile.
+On Windows, the plugins uses `LoadLibrary` to dynamically load MXNet, no need for MXNet header to compile.
