@@ -1,12 +1,6 @@
-#include <iostream>
 #include <fstream>
 #include <string>
-#include <vector>
-#include <assert.h>
 #include <algorithm>
-#include <memory>
-
-#include <unordered_map>
 
 #include <VapourSynth/VapourSynth.h>
 #include <VapourSynth/VSHelper.h>
@@ -54,6 +48,8 @@ inline int VSFormatToMXDtype(const VSFormat *format)
     if (format->bitsPerSample == 64 && format->sampleType == stInteger) {
         return 6; // int64
     }
+
+    return -1;
 }
 
 template <typename Function>
@@ -133,8 +129,6 @@ MXNet mx("libmxnet.dll");
 
 inline int mxForward(mxnetData * VS_RESTRICT d)
 {
-    cv::Mat plane(d->patch_h, d->patch_w, CV_32FC1, d->srcBuffer);
-
     int ch = d->vi.format->numPlanes;
     auto imageSize = d->patch_h * d->patch_w * ch;
 
@@ -209,10 +203,6 @@ static int process(const VSFrameRef *src, VSFrameRef *dst, mxnetData * VS_RESTRI
             for (int plane = 0; plane < ch; ++plane) {
                 auto _srcp = srcp[plane] + sx + srcStride[plane] * sy;
                 auto buf = (uint8_t *)d->srcBuffer + patchSize * plane;
-
-                cv::Mat s(d->patch_h, d->patch_w, CV_32FC1, _srcp);
-                cv::Mat b(d->patch_h, d->patch_w, CV_32FC1, buf);
-
                 vs_bitblt(buf, in_rowSize, _srcp, srcStride[plane], in_rowSize, d->patch_h);
             }
 
@@ -223,7 +213,7 @@ static int process(const VSFrameRef *src, VSFrameRef *dst, mxnetData * VS_RESTRI
                 int dstoff_y = std::min(d->frame_h - d->output_h, y * d->outstep_h);
 
                 auto stride = vsapi->getStride(dst, plane);
-                auto dstp = vsapi->getWritePtr(dst, plane) + dstoff_x + dstoff_y * stride;
+                auto dstp = vsapi->getWritePtr(dst, plane) + dstoff_x * d->out_elem + dstoff_y * stride;
 
                 auto outbuf = (uint8_t *)d->dstBuffer + outputSize * plane;
                 vs_bitblt(dstp, stride, outbuf, out_rowSize, out_rowSize, d->output_h);
@@ -519,7 +509,7 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
         }
 
         if (d.hPred == nullptr) {
-            throw std::string{ "Invalid MXNet Predictor: " } + mx.MXGetLastError();
+            throw std::string{ "Invalid MXNet Predictor:" } + mx.MXGetLastError() + " Please Try to Upgrade MXNet.";
         }
     } catch (const std::string & error) {
         vsapi->setError(out, ("mxnet: " + error).c_str());
