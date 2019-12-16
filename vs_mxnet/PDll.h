@@ -23,258 +23,293 @@
 // if not then if the function was loaded successfully make a call to it
 // otherwise return a NULL cast to the return parameter.
 
-#define DECLARE_FUNCTION0(retVal, FuncName) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName; \
-	retVal FuncName() \
-	{ \
-		if (m_dllHandle) \
-		{ \
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(); \
-			else \
-				return (retVal)NULL; \
-		} \
-		else \
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION0(retVal, FuncName)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName ()\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName();\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION1(retVal, FuncName, Param1) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName(Param1 p1) \
-	{ \
-		if (m_dllHandle) \
-		{ \
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1); \
-			else \
-				return (retVal)NULL; \
-		} \
-		else \
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION1(retVal, FuncName, Param1)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION2(retVal, FuncName, Param1, Param2) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2); \
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION2(retVal, FuncName, Param1, Param2)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION3(retVal, FuncName, Param1, Param2, Param3) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED; \
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3);\
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION3(retVal, FuncName, Param1, Param2, Param3)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION4(retVal, FuncName, Param1, Param2, Param3, Param4) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4);\
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION4(retVal, FuncName, Param1, Param2, Param3, Param4)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION5(retVal, FuncName, Param1, Param2, Param3, Param4, Param5) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName; \
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5);\
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION5(retVal, FuncName, Param1, Param2, Param3, Param4, Param5)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION6(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5, p6);\
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION6(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION7(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5, p6, p7);\
-			else \
-				return (retVal)NULL; \
-		} \
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION7(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION8(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8);\
-			else \
-				return (retVal)NULL; \
-		}\
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION8(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION9(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName; \
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_NAME != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9);\
-			else \
-				return (retVal)NULL; \
-		}\
-		else\
-			return (retVal)NULL; \
-	}
+#define DECLARE_FUNCTION9(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
-#define DECLARE_FUNCTION10(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10) \
-	typedef  retVal (CALLBACK* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10); \
-	TYPE_##FuncName m_##FuncName; \
-	short m_is##FuncName;\
-	retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10) \
-	{\
-		if (m_dllHandle)\
-		{\
-			if (FUNC_LOADED != m_is##FuncName) \
-			{\
-				m_##FuncName = NULL; \
-				m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName); \
-				m_is##FuncName = FUNC_LOADED;\
-			}\
-			if (NULL != m_##FuncName) \
-				return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);\
-			else \
-				return (retVal)NULL; \
-		}\
-		else					\
-			return (retVal)NULL;\
-	}
+#define DECLARE_FUNCTION10(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
+
+#define DECLARE_FUNCTION11(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10, Param11 p11)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
+
+#define DECLARE_FUNCTION12(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10, Param11 p11, Param12 p12)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
+
+#define DECLARE_FUNCTION13(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10, Param11 p11, Param12 p12, Param13 p13)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
+
+#define DECLARE_FUNCTION14(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13, Param14)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13, Param14); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10, Param11 p11, Param12 p12, Param13 p13, Param14 p14)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
+
+#define DECLARE_FUNCTION15(retVal, FuncName, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13, Param14, Param15)\
+    typedef retVal (__stdcall* TYPE_##FuncName)(Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8, Param9, Param10, Param11, Param12, Param13, Param14, Param15); \
+        TYPE_##FuncName m_##FuncName; \
+        short m_is##FuncName;\
+        retVal FuncName (Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5, Param6 p6, Param7 p7, Param8 p8, Param9 p9, Param10 p10, Param11 p11, Param12 p12, Param13 p13, Param14 p14, Param15 p15)\
+        {\
+            if (m_dllHandle) {\
+                if (FUNC_LOADED != m_is##FuncName) {\
+                    m_##FuncName = nullptr;\
+                    m_##FuncName = (TYPE_##FuncName)GetProcAddress(m_dllHandle, #FuncName);\
+                    m_is##FuncName = FUNC_LOADED;\
+                }\
+                if (nullptr != m_##FuncName) return m_##FuncName(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15);\
+                else return (retVal)0;\
+            }\
+            else return (retVal)0;\
+        }
 
 //declare constructors and LoadFunctions
 #define DECLARE_CLASS(ClassName) \

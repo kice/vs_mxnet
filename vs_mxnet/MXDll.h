@@ -2,28 +2,32 @@
 
 #include "PDll.h"
 
-/*! \brief manually define unsigned int */
-typedef unsigned int mx_uint;
-/*! \brief manually define float */
-typedef float mx_float;
 /*! \brief handle to Predictor */
 typedef void *PredictorHandle;
-/*! \brief handle to NDArray list */
-typedef void *NDListHandle;
-
-#include <string>
 
 class MXNet : public PDLL
 {
 public:
-	//declare our functions
-	DECLARE_FUNCTION10(int, MXPredCreate, const char*, const void*, int, int, int, mx_uint, const char**, const mx_uint*, const mx_uint*, PredictorHandle*)
+    DECLARE_FUNCTION0(const char *, MXGetLastError)
 
-	DECLARE_FUNCTION4(int, MXPredSetInput, PredictorHandle, const char*, const mx_float*, mx_uint)
+    DECLARE_FUNCTION13(int, MXPredCreateEx,
+        const char */*symbol_json_str*/,
+            const void */*param_bytes*/,
+            int /*param_size*/,
+            int /*dev_type*/, int /*dev_id*/,
+            const uint32_t /*num_input_nodes*/,
+            const char **/*input_keys*/,
+            const uint32_t */*input_shape_indptr*/,
+            const uint32_t */*input_shape_data*/,
+            const uint32_t /*num_provided_arg_dtypes*/,
+            const char **/*provided_arg_dtype_names*/,
+            const int */*provided_arg_dtypes*/,
+            PredictorHandle */*out*/)
+
+	DECLARE_FUNCTION4(int, MXPredSetInput, PredictorHandle, const char*, const float*, uint32_t)
 	DECLARE_FUNCTION1(int, MXPredForward, PredictorHandle)
-	DECLARE_FUNCTION4(int, MXPredGetOutputShape, PredictorHandle, mx_uint, mx_uint**, mx_uint*)
-	DECLARE_FUNCTION4(int, MXPredGetOutput, PredictorHandle, mx_uint, mx_float*, mx_uint)
-
+	DECLARE_FUNCTION4(int, MXPredGetOutputShape, PredictorHandle, uint32_t, uint32_t**, uint32_t*)
+	DECLARE_FUNCTION4(int, MXPredGetOutput, PredictorHandle, uint32_t, float*, uint32_t)
 	DECLARE_FUNCTION1(int, MXPredFree, PredictorHandle)
 
 private:

@@ -11,16 +11,6 @@
 #include <VapourSynth/VapourSynth.h>
 #include <VapourSynth/VSHelper.h>
 
-#include <opencv2/core.hpp>
-
-#ifdef _DEBUG
-#pragma comment(lib, "opencv_core343d.lib")
-#else
-#pragma comment(lib, "opencv_core343.lib")
-#endif
-
-#pragma comment(lib, "zlib.lib")
-
 #include "MXDll.h"
 
 #ifdef _MSC_VER
@@ -37,6 +27,34 @@
 #define DEFER_2(x, y) DEFER_1(x, y)
 #define DEFER_0(x)    DEFER_2(x, __COUNTER__)
 #define defer(expr)   auto DEFER_0(_defered_option) = deferer([&](){expr;})
+
+// no int8 and uint16
+inline int VSFormatToMXDtype(const VSFormat *format)
+{
+    if (format->bitsPerSample == 32 && format->sampleType == stFloat) {
+        return 0; // float32
+    }
+
+    if (format->bitsPerSample == 64 && format->sampleType == stFloat) {
+        return 1; // float64
+    }
+
+    if (format->bitsPerSample == 16 && format->sampleType == stFloat) {
+        return 2; // float16
+    }
+
+    if (format->bitsPerSample == 8 && format->sampleType == stInteger) {
+        return 3; // uint8
+    }
+
+    if (format->bitsPerSample == 32 && format->sampleType == stInteger) {
+        return 4; // int32
+    }
+
+    if (format->bitsPerSample == 64 && format->sampleType == stInteger) {
+        return 6; // int64
+    }
+}
 
 template <typename Function>
 struct doDefer
@@ -59,11 +77,11 @@ struct mxnetData
 	int patch_w, patch_h;
 	int step_w, step_h;
 	float scale;
-	int pad, border_type;
 	int output_w, output_h;
 	int outstep_w, outstep_h;
 	int frame_w, frame_h;
-	float *srcBuffer, *dstBuffer, *padBuffer = nullptr;
+    int out_elem, in_elem;
+	void *srcBuffer, *dstBuffer = nullptr;
 	PredictorHandle hPred;
 };
 
@@ -113,31 +131,14 @@ public:
 
 MXNet mx("libmxnet.dll");
 
-template <typename T>
-static inline void bitblt(T *dstp, int dst_stride, const T *srcp, int src_stride, size_t width, size_t height, size_t pad = 0)
-{
-	if (!height) return;
-
-	const auto t = sizeof(T);
-
-	if (src_stride == dst_stride && src_stride == (int)width) {
-		memcpy(dstp, srcp, width * height * t);
-		return;
-	}
-
-	for (size_t i = 0; i < height; i++) {
-		memcpy(dstp + pad, srcp, width * t);
-		srcp += src_stride;
-		dstp += dst_stride;
-	}
-}
-
 inline int mxForward(mxnetData * VS_RESTRICT d)
 {
+    cv::Mat plane(d->patch_h, d->patch_w, CV_32FC1, d->srcBuffer);
+
 	int ch = d->vi.format->numPlanes;
 	auto imageSize = d->patch_h * d->patch_w * ch;
 
-	if (mx.MXPredSetInput(d->hPred, "data", d->srcBuffer, imageSize) != 0) {
+	if (mx.MXPredSetInput(d->hPred, "data", (float *)d->srcBuffer, imageSize) != 0) {
 		return 2;
 	}
 
@@ -145,24 +146,24 @@ inline int mxForward(mxnetData * VS_RESTRICT d)
 		return 2;
 	}
 
-	mx_uint output_index = 0;
+	uint32_t output_index = 0;
 
-	mx_uint *shape = nullptr;
-	mx_uint shape_len = 0;
+    uint32_t *shape = nullptr;
+    uint32_t shape_len = 0;
 
 	// Get Output Result
 	if (mx.MXPredGetOutputShape(d->hPred, output_index, &shape, &shape_len) != 0) {
 		return 2;
 	}
 
-	mx_uint outputSize = 1;
-	for (mx_uint i = 0; i < shape_len; ++i) outputSize *= shape[i];
+    uint32_t outputSize = 1;
+	for (uint32_t i = 0; i < shape_len; ++i) outputSize *= shape[i];
 
 	if (outputSize != d->output_h*d->output_w*ch) {
 		return 1;
 	}
 
-	if (mx.MXPredGetOutput(d->hPred, output_index, d->dstBuffer, outputSize) != 0) {
+	if (mx.MXPredGetOutput(d->hPred, output_index, (float *)d->dstBuffer, outputSize) != 0) {
 		return 2;
 	}
 
@@ -179,50 +180,22 @@ static int process(const VSFrameRef *src, VSFrameRef *dst, mxnetData * VS_RESTRI
 	int width = vsapi->getFrameWidth(src, 0);
 	int height = vsapi->getFrameHeight(src, 0);
 
-	float **srcp = new float *[ch];
+    uint8_t **srcp = new uint8_t *[ch];
 	int *srcStride = new int[ch];
 	defer(delete[] srcp; delete[] srcStride;);
 
-	std::vector<cv::Mat> padded;
 	for (int plane = 0; plane < ch; ++plane) {
-		auto _srcStride = vsapi->getStride(src, plane) / sizeof(float);
-		auto _srcp = reinterpret_cast<const float *>(vsapi->getReadPtr(src, plane));
+		auto _srcStride = vsapi->getStride(src, plane);
+		auto _srcp = vsapi->getReadPtr(src, plane);
 
-		if (d->pad > 0) {
-			int _width = width + d->pad * 2;
-			int _height = height + d->pad * 2;
-
-			int dststep = _width * sizeof(float);
-
-			float *buf = d->padBuffer + _width * _height * plane;
-
-			bitblt<float>(buf + _width * d->pad, _width, _srcp, _srcStride, width, height, d->pad);
-
-			cv::Mat output(_height, _width, CV_32FC1, buf);
-			cv::Mat input(output, cv::Rect(d->pad, d->pad, width, height));
-
-			cv::copyMakeBorder(input, output, d->pad, d->pad, d->pad, d->pad, d->border_type | cv::BORDER_ISOLATED);
-
-			padded.push_back(output);
-
-			_srcp = (float *)padded[plane].data;
-
-			if (padded[plane].isContinuous()) {
-				_srcStride = width + d->pad * 2;
-			} else {
-				_srcStride = padded[plane].step;
-			}
-		}
-
-		srcp[plane] = (float *)_srcp;
+		srcp[plane] = (uint8_t *)_srcp;
 		srcStride[plane] = _srcStride;
 	}
 
-	width += d->pad * 2;
-	height += d->pad * 2;
-
-	int patchSize = d->patch_w * d->patch_h * ch;
-	int outputSize = d->output_w * d->output_h * ch;
+	int patchSize = d->patch_w * d->patch_h * d->in_elem;
+	int outputSize = d->output_w * d->output_h * d->out_elem;
+    int in_rowSize = d->patch_w * d->in_elem;
+    int out_rowSize = d->output_w * d->out_elem;
 
 	int x = 0, y = 0;
 	while (true) {
@@ -234,25 +207,26 @@ static int process(const VSFrameRef *src, VSFrameRef *dst, mxnetData * VS_RESTRI
 			int ex = std::min(x * d->step_w + d->patch_w, width);
 
 			for (int plane = 0; plane < ch; ++plane) {
-				auto _srcStride = srcStride[plane];
-				const float *_srcp = srcp[plane] + sx + _srcStride * sy;
+				auto _srcp = srcp[plane] + sx + srcStride[plane] * sy;
+                auto buf = (uint8_t *)d->srcBuffer + patchSize * plane;
 
-				mx_float *buf = d->srcBuffer + patchSize / ch * plane;
-				bitblt<float>(buf, d->patch_w, _srcp, _srcStride, d->patch_w, d->patch_h);
+                cv::Mat s(d->patch_h, d->patch_w, CV_32FC1, _srcp);
+                cv::Mat b(d->patch_h, d->patch_w, CV_32FC1, buf);
+
+                vs_bitblt(buf, in_rowSize, _srcp, srcStride[plane], in_rowSize, d->patch_h);
 			}
 
 			if (auto err = mxForward(d)) return err;
-			// memcpy(d->dstBuffer, d->srcBuffer, d->patch_h * d->patch_w * ch * sizeof(float));
 
 			for (int plane = 0; plane < ch; ++plane) {
 				int dstoff_x = std::min(d->frame_w - d->output_w, x * d->outstep_w);
 				int dstoff_y = std::min(d->frame_h - d->output_h, y * d->outstep_h);
 
-				const unsigned stride = vsapi->getStride(dst, plane) / sizeof(float);
-				float * VS_RESTRICT dstp = reinterpret_cast<float *>(vsapi->getWritePtr(dst, plane)) + dstoff_x + dstoff_y * stride;
+				auto stride = vsapi->getStride(dst, plane);
+                auto dstp = vsapi->getWritePtr(dst, plane) + dstoff_x + dstoff_y * stride;
 
-				float *outbuf = d->dstBuffer + outputSize / ch * plane;
-				bitblt<float>(dstp, stride, outbuf, d->output_w, d->output_w, d->output_h);
+                auto outbuf = (uint8_t *)d->dstBuffer + outputSize * plane;
+                vs_bitblt(dstp, stride, outbuf, out_rowSize, out_rowSize, d->output_h);
 			}
 
 			if (ex == width) break;
@@ -279,16 +253,18 @@ static const VSFrameRef *VS_CC mxGetFrame(int n, int activationReason, void **in
 
 		const auto error = process(src, dst, d, vsapi);
 		if (error != 0) {
-			const char * err = "";
+			std::string err;
 
 			if (error == 1)
-				err = "input and target shapes do not match";
-			else if (error == 2)
-				err = "failed to process mxnet";
+				err = "mxnet: input and target shapes do not match";
+			else if (error == 2) {
+                err = "mxnet: failed to process: ";
+                err += mx.MXGetLastError();
+            }
 			else if (error == 3)
-				err = "not support clip format";
+				err = "mxnet: not support clip format";
 
-			vsapi->setFilterError((std::string{ "mxnet: " } +err).c_str(), frameCtx);
+			vsapi->setFilterError(err.c_str(), frameCtx);
 			vsapi->freeFrame(src);
 			vsapi->freeFrame(dst);
 			return nullptr;
@@ -308,15 +284,8 @@ static void VS_CC mxFree(void *instanceData, VSCore *core, const VSAPI *vsapi)
 
 	mx.MXPredFree(d->hPred);
 
-	//delete[] d->srcBuffer;
-	//delete[] d->dstBuffer;
-
 	vs_aligned_free(d->srcBuffer);
 	vs_aligned_free(d->dstBuffer);
-
-	if (d->padBuffer)
-		vs_aligned_free(d->padBuffer);
-	//delete[] d->padBuffer;
 
 	free(d);
 }
@@ -340,11 +309,14 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 	int width = d.vi.width, height = d.vi.height;
 
 	try {
-		if (!isConstantFormat(&d.vi) || d.vi.format->sampleType != stFloat || d.vi.format->bitsPerSample != 32)
-			throw std::string{ "only constant format 32 bit float input supported" };
+		if (!isConstantFormat(&d.vi))
+			throw std::string{ "only constant format input supported" };
 
 		if (d.vi.format->subSamplingH || d.vi.format->subSamplingW)
 			throw std::string{ "all plane must have the save size" };
+
+        int input_dtype = VSFormatToMXDtype(d.vi.format);
+        d.in_elem = d.vi.format->bytesPerSample;
 
 		const char* symbol = vsapi->propGetData(in, "symbol", 0, &err);
 		if (err)
@@ -353,25 +325,6 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 		const char* param = vsapi->propGetData(in, "param", 0, &err);
 		if (err)
 			throw std::string{ "\"param\" is empty" };
-
-		// Padding
-		d.pad = int64ToIntS(vsapi->propGetInt(in, "padding", 0, &err));
-		if (err) {
-			d.pad = 0;
-		} else {
-			width += 2 * d.pad;
-			height += 2 * d.pad;
-		}
-
-		if (d.pad) {
-			d.border_type = int64ToIntS(vsapi->propGetInt(in, "boder_type", 0, &err));
-			if (err)
-				d.border_type = cv::BORDER_REPLICATE;
-
-			if (!(d.border_type == cv::BORDER_CONSTANT || d.border_type == cv::BORDER_REPLICATE || d.border_type == cv::BORDER_REFLECT ||
-				d.border_type == cv::BORDER_WRAP || d.border_type == cv::BORDER_REFLECT_101))
-				throw std::string{ "invalid border type: check OpenCV border type for more info (default: cv::BORDER_REPLICATE)" };
-		}
 
 		// Input size
 		d.patch_w = int64ToIntS(vsapi->propGetInt(in, "patch_w", 0, &err));
@@ -427,7 +380,14 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 		d.frame_w = d.vi.width;
 		d.frame_h = d.vi.height;
 
-		// Now d.vi is same size as output
+        int format = int64ToIntS(vsapi->propGetInt(in, "output_format", 0, &err));
+        if (!err)
+            d.vi.format = vsapi->getFormatPreset(format, core);
+
+        if (d.vi.format->subSamplingH || d.vi.format->subSamplingW)
+            throw std::string{ "all output plane must have the save size" };
+
+        d.out_elem = d.vi.format->bytesPerSample;
 
 		// Output Reconstruct step size
 		d.outstep_w = int64ToIntS(vsapi->propGetInt(in, "outstep_w", 0, &err));
@@ -485,19 +445,10 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 		if (dev_id < 0)
 			throw std::string{ "device id must be greater than or equal to 0" };
 
-		//d.srcBuffer = new (std::nothrow) float[d.patch_w * d.patch_h * ch];
-		//d.dstBuffer = new (std::nothrow) float[d.output_w * d.output_h * ch];
-		d.srcBuffer = vs_aligned_malloc<float>(d.patch_w * d.patch_h * ch * sizeof(float), 2048 * sizeof(float));
-		d.dstBuffer = vs_aligned_malloc<float>(d.output_w * d.output_h * ch * sizeof(float), 2048 * sizeof(float));
+		d.srcBuffer = vs_aligned_malloc(d.patch_w * d.patch_h * ch * d.in_elem, 512);
+		d.dstBuffer = vs_aligned_malloc(d.output_w * d.output_h * ch * d.out_elem, 512);
 		if (!d.srcBuffer || !d.dstBuffer)
 			throw std::string{ "malloc failure (buffer)" };
-
-		if (d.pad > 0) {
-			//d.padBuffer = new (std::nothrow) float[(width + d.pad) * (height + d.pad)];
-			d.padBuffer = vs_aligned_malloc<float>((width + d.pad) * (height + d.pad) * ch * sizeof(float), 2048 * sizeof(float));
-			if (!d.padBuffer)
-				throw std::string{ "malloc failure (pad buffer)" };
-		}
 
 		const std::string pluginPath{ vsapi->getPluginPath(vsapi->getPluginById("vs.kice.mxnet", core)) };
 		std::string dataPath{ pluginPath.substr(0, pluginPath.find_last_of('/')) };
@@ -505,15 +456,13 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 		BufferFile *json_data = new BufferFile(symbol);
 		if (json_data->GetLength() == 0) {
 			delete json_data;
-			auto modelPath = dataPath + "/mxnet-symbol/" + symbol;
-			json_data = new BufferFile(modelPath);
+			json_data = new BufferFile(dataPath + "/mxnet-symbol/" + symbol);
 		}
 
 		BufferFile *param_data = new BufferFile(param);
 		if (param_data->GetLength() == 0) {
 			delete param_data;
-			auto paramPath = dataPath + "/mxnet-symbol/" + param;
-			param_data = new BufferFile(paramPath);
+			param_data = new BufferFile(dataPath + "/mxnet-symbol/" + param);
 		}
 
 		defer([&](...) { delete json_data; delete param_data; });
@@ -525,43 +474,52 @@ static void VS_CC mxCreate(const VSMap *in, VSMap *out, void *userData, VSCore *
 
 		// Parameters
 		int dev_type = ctx == 0 ? 1 : 2;
-		mx_uint num_input_nodes = 1;
-		const char* input_key[1] = { "data" };
+        uint32_t num_input_nodes = 1;
+
+        const char *input_name = vsapi->propGetData(in, "input_name", 0, &err);
+        if (err)
+            input_name = "data";
+
+		const char* input_key[1] = { input_name };
 		const char** input_keys = input_key;
 
-		const mx_uint input_shape_indptr[] = { 0, 4 };
-		const mx_uint input_shape_data[4] =
+		const uint32_t input_shape_indptr[] = { 0, 4 };
+		const uint32_t input_shape_data[4] =
 		{
 			1,
-			static_cast<mx_uint>(ch),
-			static_cast<mx_uint>(d.patch_h),
-			static_cast<mx_uint>(d.patch_w)
+			static_cast<uint32_t>(ch),
+			static_cast<uint32_t>(d.patch_h),
+			static_cast<uint32_t>(d.patch_w)
 		};
 
-		d.hPred = 0;
+		d.hPred = nullptr;
 
 		if (!mx.IsInit()) {
 			mx.LoadDll(nullptr);
-
-			if (!mx.IsInit()) {
-				throw std::string{ "Cannot load MXNet. Please install MXNet" };
-			}
 		}
 
+        if (!mx.IsInit()) {
+            throw std::string{ "Cannot load MXNet. Please check MXNet installation." };
+        }
+
+        const char *arg_dtype_names[] = { "data" };
+        int arg_dtype[1] = { input_dtype };
+
 		// Create Predictor
-		if (mx.MXPredCreate(
+		if (mx.MXPredCreateEx(
 			(const char*)json_data->GetBuffer(),
 			(const char*)param_data->GetBuffer(),
 			static_cast<int>(param_data->GetLength()),
 			dev_type, dev_id,
 			num_input_nodes,
 			input_keys, input_shape_indptr, input_shape_data,
+            1, arg_dtype_names, arg_dtype,
 			&d.hPred) != 0) {
-			throw std::string{ "Create MXNet Predictor failed" };
+			throw std::string{ "Create MXNet Predictor failed: "} + mx.MXGetLastError();
 		}
 
-		if (d.hPred == 0) {
-			throw std::string{ "Invalid MXNet Predictor" };
+		if (d.hPred == nullptr) {
+			throw std::string{ "Invalid MXNet Predictor: " } + mx.MXGetLastError();
 		}
 	} catch (const std::string & error) {
 		vsapi->setError(out, ("mxnet: " + error).c_str());
@@ -591,8 +549,8 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
 		"step_h:int:opt;"
 		"outstep_w:int:opt;"
 		"outstep_h:int:opt;"
-		"padding:int:opt;"
-		"boder_type:int:opt;"
+        "output_format:int:opt;"
+        "input_name:data:opt;"
 		"ctx:int:opt;"
 		"dev_id:int:opt;",
 		mxCreate, nullptr, plugin);
