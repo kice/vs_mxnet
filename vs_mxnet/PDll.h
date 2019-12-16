@@ -313,119 +313,119 @@
 
 //declare constructors and LoadFunctions
 #define DECLARE_CLASS(ClassName) \
-	public:	\
-	ClassName (const char* name){LoadDll(name);} \
-	ClassName () {PDLL();}
+    public:	\
+    ClassName (const char* name){LoadDll(name);} \
+    ClassName () {PDLL();}
 
 class PDLL
 {
 protected:
-	HINSTANCE m_dllHandle;
-	char* m_dllName;
-	int m_refCount;
+    HINSTANCE m_dllHandle;
+    char* m_dllName;
+    int m_refCount;
 
 public:
 
-	PDLL()
-	{
-		m_dllHandle = NULL;
-		m_dllName = NULL;
-		m_refCount = 0;
-	}
+    PDLL()
+    {
+        m_dllHandle = NULL;
+        m_dllName = NULL;
+        m_refCount = 0;
+    }
 
-	//A NULL here means the name has already been set
-	void LoadDll(const char* name, short showMsg = 0)
-	{
-		if (name)
-			SetDllName(name);
+    //A NULL here means the name has already been set
+    void LoadDll(const char* name, short showMsg = 0)
+    {
+        if (name)
+            SetDllName(name);
 
-		//try to load
-		m_dllHandle = LoadLibraryA(m_dllName);
+        //try to load
+        m_dllHandle = LoadLibraryA(m_dllName);
 
-		if (m_dllHandle == NULL && showMsg) {
-			//show warning here if needed
-			fprintf_s(stderr, "cannot load: %s", m_dllName);
-		}
-	}
+        if (m_dllHandle == NULL && showMsg) {
+            //show warning here if needed
+            fprintf_s(stderr, "cannot load: %s", m_dllName);
+        }
+    }
 
-	bool SetDllName(const char* newName)
-	{
-		bool retVal = false;
+    bool SetDllName(const char* newName)
+    {
+        bool retVal = false;
 
-		//we allow name resets only if the current DLL handle is invalid
-		//once they've hooked into a DLL, the  name cannot be changed
-		if (!m_dllHandle) {
-			if (m_dllName) {
-				delete[]m_dllName;
-				m_dllName = NULL;
-			}
+        //we allow name resets only if the current DLL handle is invalid
+        //once they've hooked into a DLL, the  name cannot be changed
+        if (!m_dllHandle) {
+            if (m_dllName) {
+                delete[]m_dllName;
+                m_dllName = NULL;
+            }
 
-			//They may be setting this null (e.g., uninitialize)
-			if (newName) {
-				m_dllName = new char[MAX_PATH + 1];
-				//make sure memory was allocated
-				if (m_dllName)
-					strcpy_s(m_dllName, strlen(newName) + 1, newName);
-				else
-					retVal = false;
-			}
-			retVal = true;
-		}
-		return retVal;
-	}
+            //They may be setting this null (e.g., uninitialize)
+            if (newName) {
+                m_dllName = new char[MAX_PATH + 1];
+                //make sure memory was allocated
+                if (m_dllName)
+                    strcpy_s(m_dllName, strlen(newName) + 1, newName);
+                else
+                    retVal = false;
+            }
+            retVal = true;
+        }
+        return retVal;
+    }
 
-	virtual bool Initialize(short showMsg = 0)
-	{
-		bool retVal = false;
+    virtual bool Initialize(short showMsg = 0)
+    {
+        bool retVal = false;
 
-		//Add one to our internal reference counter
-		m_refCount++;
+        //Add one to our internal reference counter
+        m_refCount++;
 
-		if (m_refCount == 1 && m_dllName) //if this is first time, load the DLL
-		{
-			//we are assuming the name is already set
-			LoadDll(NULL, showMsg);
-			retVal = (m_dllHandle != NULL);
-		}
-		return retVal;
-	}
+        if (m_refCount == 1 && m_dllName) //if this is first time, load the DLL
+        {
+            //we are assuming the name is already set
+            LoadDll(NULL, showMsg);
+            retVal = (m_dllHandle != NULL);
+        }
+        return retVal;
+    }
 
-	virtual void Uninitialize(void)
-	{
-		//If we're already completely unintialized, early exit
-		if (!m_refCount)
-			return;
+    virtual void Uninitialize(void)
+    {
+        //If we're already completely unintialized, early exit
+        if (!m_refCount)
+            return;
 
-		//if this is the last time this instance has been unitialized,
-		//then do a full uninitialization
-		m_refCount--;
+        //if this is the last time this instance has been unitialized,
+        //then do a full uninitialization
+        m_refCount--;
 
-		if (m_refCount < 1) {
-			if (m_dllHandle) {
-				FreeLibrary(m_dllHandle);
-				m_dllHandle = NULL;
-			}
+        if (m_refCount < 1) {
+            if (m_dllHandle) {
+                FreeLibrary(m_dllHandle);
+                m_dllHandle = NULL;
+            }
 
-			SetDllName(NULL); //clear out the name & free memory
-		}
-	}
+            SetDllName(NULL); //clear out the name & free memory
+        }
+    }
 
-	virtual bool IsInit()
-	{
-		return (m_dllHandle != NULL);
-	}
+    virtual bool IsInit()
+    {
+        return (m_dllHandle != NULL);
+    }
 
-	~PDLL()
-	{
-		//force this to be a true uninitialize
-		m_refCount = 1;
-		Uninitialize();
+    ~PDLL()
+    {
+        //force this to be a true uninitialize
+        m_refCount = 1;
+        Uninitialize();
 
-		//free name
-		if (m_dllName) {
-			delete[] m_dllName;
-			m_dllName = NULL;
-		}
-	}
+        //free name
+        if (m_dllName) {
+            delete[] m_dllName;
+            m_dllName = NULL;
+        }
+    }
 };
 #endif

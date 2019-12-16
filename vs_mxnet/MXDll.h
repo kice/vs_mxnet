@@ -24,13 +24,13 @@ public:
             const int */*provided_arg_dtypes*/,
             PredictorHandle */*out*/)
 
-	DECLARE_FUNCTION4(int, MXPredSetInput, PredictorHandle, const char*, const float*, uint32_t)
-	DECLARE_FUNCTION1(int, MXPredForward, PredictorHandle)
-	DECLARE_FUNCTION4(int, MXPredGetOutputShape, PredictorHandle, uint32_t, uint32_t**, uint32_t*)
-	DECLARE_FUNCTION4(int, MXPredGetOutput, PredictorHandle, uint32_t, float*, uint32_t)
-	DECLARE_FUNCTION1(int, MXPredFree, PredictorHandle)
+    DECLARE_FUNCTION4(int, MXPredSetInput, PredictorHandle, const char*, const float*, uint32_t)
+    DECLARE_FUNCTION1(int, MXPredForward, PredictorHandle)
+    DECLARE_FUNCTION4(int, MXPredGetOutputShape, PredictorHandle, uint32_t, uint32_t**, uint32_t*)
+    DECLARE_FUNCTION4(int, MXPredGetOutput, PredictorHandle, uint32_t, float*, uint32_t)
+    DECLARE_FUNCTION1(int, MXPredFree, PredictorHandle)
 
 private:
-	//use the class declaration macro
-	DECLARE_CLASS(MXNet)
+    //use the class declaration macro
+    DECLARE_CLASS(MXNet)
 };
