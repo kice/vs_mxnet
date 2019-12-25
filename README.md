@@ -136,8 +136,10 @@ res = core.std.Interleave([even, odd])
 
 Also see [muvsfunc](https://github.com/WolframRhodium/muvsfunc/blob/master/Collections/examples/super_resolution_mxnet.vpy)'s example.
 
-**OUTDATED** Perforamce 
+Perforamce 
 ==========
+
+**OUTDATED**
 
 Here is the conclusion, generally MXNet is faster than Caffe with cuDNN enabled if the bottleneck is not GPU.
 
