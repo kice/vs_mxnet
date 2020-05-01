@@ -54,20 +54,20 @@ if not hasattr(core, 'mx'):
 # Your code goes here
 ```
 
-Python will try to help use load all require dlls (like, MXNet and CUDA). If you delete `core.std.LoadPlugin`, it will still work for vsedit but not work under vspipe.
+Due to Vapoursynth DLL loading method, by `import mxnet`, Python will try to help load all require dlls (like, MXNet and CUDA). If you delete `core.std.LoadPlugin`, it will still work for vsedit but not work under vspipe.
 
 Usage
 =====
 
-    mx.Predict(clip clip, string symbol, string param[, float scale=1.0, int patch_w=0, int patch_h=0, int output_w=128, int output_h=block_w, int frame_w=3, int frame_h=True, int step_w=0, int step_h=0, int outstep_w=0, int outstep_h=0, int padding=0, int border_type=1, int ctx=0, int dev_id=0])
+    mx.Predict(clip clip, string symbol, string param[, int scale=1, int patch_w=0, int patch_h=0, int output_w=128, int output_h=block_w, int frame_w=3, int frame_h=True, int step_w=0, int step_h=0, int outstep_w=0, int outstep_h=0, int padding=0, int border_type=1, int ctx=0, int dev_id=0])
 
-* clip: Clip to process. Only planar format is float sample type of 32 bit depth is supported. RGB and GRAY is supported. YUV is not correctly supported.
+* clip: Clip to process. Only planar format is float32 or int8 supported. RGB and GRAY is supported, YUV is not correctly supported.
 
-* symbol: MXNet symbol json file. If the plugin cannot read the file, it will try to read it from `plugins64\mxnet-symbol\`. You can find more MXNet model [here](https://github.com/WolframRhodium/Super-Resolution-Zoo).
+* symbol: MXNet symbol json file. If the plugin cannot read the file, it will try to read it from `plugins64\mxnet-symbol\`. You can find more MXNet models [here](https://github.com/WolframRhodium/Super-Resolution-Zoo).
 
 * param: The same as `symbol`, but for model parameters data.
 
-* scale: Set output shape and final frame shape to twice of patch and input clip. It will be ignore if you manully set corresponding parameters.
+* scale: Set output shape and final frame shape form the shape of patch and input clip. It will be ignore if you manully set corresponding parameters. default: `1`
 
 * patch_w: The horizontal block size for dividing the image during processing. Smaller value results in lower VRAM usage, while larger value may not necessarily give faster speed. The optimal value may vary according to different graphics card and image size. If patch_h is larger than clip's width, it will clamp to clip's width. default: clip's width.
 
@@ -96,7 +96,7 @@ Usage
 * input_name: Set input name. Most MXNet model use `data` as input name. defalut: `data`.
 
 * ctx: Specifies which type of device to use. If GPU was chosen, cuDNN will be used by defalut.
-    * 1 = CPU
+    * 1 = CPU (default)
     * 2 = GPU
 
 * dev_id: Which device to use. Starting with 0.
@@ -120,7 +120,7 @@ sr2x = core.mx.Predict(src, symbol='Some2x-symbol.json', param='Some2x-0000.para
 # run Waifu2x 2x upconv model with pre-padding, patch size=400x300 on second GPU, output size is 1920x1080
 waifu2x = core.mx.Predict(clip, symbol=r'noise0_scale2.0x_model-symbol.json', 
                      param=r'noise0_scale2.0x_model-0000.params', 
-                     patch_w=patch_w, patch_h=patch_h, 
+                     patch_w=patch_w,       patch_h=patch_h, 
                      output_w=patch_w*2,    output_h=patch_h*2, 
                      frame_w=1920,          frame_h=1080, 
                      step_w=patch_w,        step_h=patch_h, 
@@ -236,16 +236,15 @@ block_h = src.height
 
 scale = 2
 
-# Waifu2x need to set pad=7, other model dose not have to set padding
-pad = 0
+# Waifu2x symbol file should comes with padding
 
 def process(clip, gpu):
     return core.mx.Predict(clip, symbol=symbol, param=param,
-                         patch_w  = block_w + pad*2,  patch_h  = block_h + pad*2,
+                          patch_w = block_w,           patch_h = block_h,
                          output_w = block_w*scale,    output_h = block_h*scale,
-                         frame_w  = clip.width*scale, frame_h  = clip.height*scale,
-                         step_w   = block_w,          step_h   = block_h,
-                         padding = pad, ctx = 2, dev_id = gpu)
+                          frame_w = clip.width*scale,  frame_h = clip.height*scale,
+                           step_w = block_w,            step_h = block_h,
+                        ctx = 2, dev_id = gpu)
 
 queue_size = 3
 gpus = 2
@@ -272,7 +271,7 @@ Limitation
 
 5. MXNet will take some time for cudnn auto tuning for convolution layers every time. set MXNET_CUDNN_AUTOTUNE_DEFAULT=0 to disable it. More info [here](https://mxnet.incubator.apache.org/faq/env_var.html).
 
-6. Please remember that during feeding the first frame, MXNet will allocate very large VRAM block, you might get **Out of Memory** error. Please reduce the patch size to solve it.
+6. MXNet will allocate VRAM when feeding the first frame, you might get **Out of Memory** error. Reducing the patch size may solve it.
 
 7. You might need to restart the program (e.g. vsedit) after you changing the input model file.
 
@@ -281,4 +280,4 @@ Compilation
 
 There are some code to bypass Vapoursynth plugin loading system, which only works on Windows. You can remove that part and replace all MXNet function calls with normal calls will work on other system. All the header you need is here [`MXNet C predict API`](https://github.com/apache/incubator-mxnet/tree/master/include/mxnet)
 
-On Windows, the plugins uses `LoadLibrary` to dynamically load MXNet, no need for MXNet header to compile.
+On Windows, the plugins uses `LoadLibrary` to dynamically load MXNet, no need for MXNet header to compile. 

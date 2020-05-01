@@ -16,15 +16,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MXDll.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PDll.h">
-      <Filter>头文件</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vsMXNet.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
